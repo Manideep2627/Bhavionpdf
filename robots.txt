@@ -1,0 +1,14 @@
+# Bhavion PDF Converter – robots.txt
+# https://www.bhavionpdf.com/
+
+User-agent: *
+Allow: /
+
+# Block any admin or private areas (add more as your site grows)
+Disallow: /admin/
+Disallow: /api/
+Disallow: /tmp/
+Disallow: /uploads/
+
+# Sitemap location
+Sitemap: https://www.bhavionpdf.com/sitemap.xml
