@@ -72,7 +72,20 @@
 <body>
 
 <nav>
-  <a href="/" class="logo"><i class="fas fa-file-pdf" style="color:#0d9488"></i> Bhavion PDF</a>
+  <a href="/" style="display:flex;align-items:center;gap:8px;text-decoration:none">      <svg width="52" height="52" viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="26" cy="26" r="26" fill="#0f172a"/>
+        <circle cx="26" cy="26" r="21" fill="none" stroke="#0d9488" stroke-width="2"/>
+        <text x="26" y="19" text-anchor="middle" font-size="8" fill="white" font-weight="700" font-family="Arial" letter-spacing="0.5">BHAVION</text>
+        <line x1="10" y1="23" x2="42" y2="23" stroke="#0d9488" stroke-width="1"/>
+        <text x="26" y="33" text-anchor="middle" font-size="11" fill="#0d9488" font-weight="900" font-family="Arial">PDF</text>
+        <line x1="10" y1="36" x2="42" y2="36" stroke="#0d9488" stroke-width="0.8"/>
+        <text x="26" y="43" text-anchor="middle" font-size="6" fill="#94a3b8" font-weight="600" font-family="Arial" letter-spacing="1">CONVERTER</text>
+        <circle cx="42" cy="10" r="5" fill="#f59e0b"/>
+      </svg>
+      <div style="display:flex;flex-direction:column;line-height:1.1">
+        <span style="font-family:Arial,sans-serif;font-size:1.1rem;font-weight:900;color:#0f172a">BHAVION</span>
+        <span style="font-family:Arial,sans-serif;font-size:0.95rem;font-weight:900;color:#0d9488">PDF <span style="color:#64748b;font-weight:600;font-size:0.75rem">CONVERTER</span></span>
+      </div></a>
   <div class="nav-links">
     <a href="/">All Tools</a>
     <a href="/merge-pdf">Merge</a>
@@ -283,6 +296,68 @@ function toast(msg) {
   t.classList.add("show");
   setTimeout(() => t.classList.remove("show"), 3500);
 }
+
+function showDownloadModal(blob, defaultName) {
+  const existing = document.getElementById("downloadModal");
+  if (existing) existing.remove();
+  const ext = defaultName.split(".").pop();
+  const baseName = defaultName.replace(/\.[^.]+$/, "");
+  const blobUrl = URL.createObjectURL(blob);
+  const modal = document.createElement("div");
+  modal.id = "downloadModal";
+  modal.style.cssText = "position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem";
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:20px;padding:2rem;max-width:440px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)">
+      <div style="text-align:center;margin-bottom:1.25rem">
+        <div style="width:56px;height:56px;background:#f0fdf4;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;margin-bottom:.75rem">
+          <i class="fas fa-check-circle" style="font-size:1.8rem;color:#0d9488"></i>
+        </div>
+        <h3 style="font-family:'Fraunces',serif;font-size:1.3rem;font-weight:800;color:#1e293b;margin:0">File Ready!</h3>
+        <p style="font-size:.85rem;color:#64748b;margin:.25rem 0 0">Rename your file before downloading</p>
+      </div>
+      <div style="margin-bottom:1rem">
+        <label style="font-size:.85rem;font-weight:600;color:#374151;display:block;margin-bottom:.4rem">File name</label>
+        <div style="display:flex;align-items:center;border:1.5px solid #e2e8f0;border-radius:10px;overflow:hidden">
+          <input id="renameInput" type="text" value="${baseName}"
+            style="flex:1;padding:.7rem .9rem;border:none;outline:none;font-size:.9rem;font-family:inherit"/>
+          <span style="padding:.7rem .9rem;background:#f8fafc;color:#64748b;font-size:.85rem;border-left:1px solid #e2e8f0">.${ext}</span>
+        </div>
+      </div>
+      <button onclick="doDownload('${blobUrl}', document.getElementById('renameInput').value + '.${ext}')"
+        style="width:100%;padding:.85rem;background:#0d9488;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;margin-bottom:.75rem">
+        <i class="fas fa-download"></i> Download File
+      </button>
+      <div style="border-top:1px solid #e2e8f0;padding-top:.75rem">
+        <p style="font-size:.82rem;color:#64748b;text-align:center;margin:0 0 .6rem">Share</p>
+        <div style="display:flex;gap:8px;justify-content:center">
+          <button onclick="window.open('https://wa.me/?text=' + encodeURIComponent('Check out Bhavion PDF Converter! https://bhavionpdf.onrender.com'), '_blank')"
+            style="flex:1;padding:.65rem;background:#25D366;color:#fff;border:none;border-radius:9px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">
+            <i class="fab fa-whatsapp"></i> WhatsApp
+          </button>
+          <button onclick="window.open('mailto:?subject=PDF File&body=Converted using Bhavion PDF: https://bhavionpdf.onrender.com', '_blank')"
+            style="flex:1;padding:.65rem;background:#0078d4;color:#fff;border:none;border-radius:9px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">
+            <i class="fas fa-envelope"></i> Email
+          </button>
+          <button onclick="navigator.clipboard.writeText('https://bhavionpdf.onrender.com').then(()=>alert('Link copied!'))"
+            style="flex:1;padding:.65rem;background:#f1f5f9;color:#374151;border:none;border-radius:9px;font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">
+            <i class="fas fa-link"></i> Copy
+          </button>
+        </div>
+      </div>
+      <button onclick="document.getElementById('downloadModal').remove()"
+        style="width:100%;margin-top:.75rem;padding:.5rem;background:none;border:none;color:#94a3b8;font-size:.82rem;cursor:pointer;font-family:inherit">Close</button>
+    </div>`;
+  document.body.appendChild(modal);
+}
+
+function doDownload(blobUrl, filename) {
+  const a = document.createElement("a");
+  a.href = blobUrl; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => a.remove(), 500);
+  document.getElementById("downloadModal").remove();
+}
+
 </script>
 </body>
 </html>

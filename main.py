@@ -33,9 +33,47 @@ app.add_middleware(
 # ---
 BASE_DIR = Path(__file__).parent
 
+# ── Real file counter ─────────────────────────────────────────────────────────
+COUNTER_FILE = BASE_DIR / "counter.txt"
+
+def get_counter() -> int:
+    try:
+        return int(COUNTER_FILE.read_text().strip())
+    except:
+        return 0
+
+def increment_counter():
+    try:
+        count = get_counter() + 1
+        COUNTER_FILE.write_text(str(count))
+    except:
+        pass
+
+@app.get("/api/stats")
+async def get_stats():
+    return {"total_conversions": get_counter()}
+
 @app.get("/")
 async def serve_frontend():
     return FileResponse(BASE_DIR / "index.html")
+
+@app.get("/sitemap.xml")
+async def sitemap():
+    return FileResponse(BASE_DIR / "sitemap.xml", media_type="application/xml")
+
+@app.get("/robots.txt")
+async def robots():
+    return FileResponse(BASE_DIR / "robots.txt", media_type="text/plain")
+
+# WWW canonicalization — redirect www to non-www
+@app.middleware("http")
+async def www_redirect(request, call_next):
+    host = request.headers.get("host", "")
+    if host.startswith("www."):
+        url = str(request.url).replace("://www.", "://", 1)
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=url, status_code=301)
+    return await call_next(request)
 
 # Serve all 20 tool pages
 TOOL_PAGES = [
@@ -112,6 +150,7 @@ def _images_to_pdf(images: List[Image.Image]) -> bytes:
 @app.post("/api/convert/image-to-pdf")
 async def image_to_pdf(files: List[UploadFile] = File(...)):
     images = [Image.open(io.BytesIO(_read_upload(f))) for f in files]
+    increment_counter()
     return _stream(_images_to_pdf(images), "converted.pdf")
 
 @app.post("/api/convert/word-to-pdf")
@@ -121,6 +160,7 @@ async def word_to_pdf(file: UploadFile = File(...)):
         src = tmp / file.filename
         src.write_bytes(_read_upload(file))
         pdf = _libreoffice_to_pdf(src, tmp)
+        increment_counter()
         return _stream(pdf.read_bytes(), "converted.pdf")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -178,12 +218,14 @@ async def pdf_to_jpg(file: UploadFile = File(...)):
         images.append(img_buf.getvalue())
     doc.close()
     if len(images) == 1:
-        return _stream(images[0], "page-1.jpg", "image/jpeg")
+        increment_counter()
+    return _stream(images[0], "page-1.jpg", "image/jpeg")
     zip_buf = io.BytesIO()
     with zipfile.ZipFile(zip_buf, "w") as zf:
         for i, img_bytes in enumerate(images, 1):
             zf.writestr(f"page-{i}.jpg", img_bytes)
     zip_buf.seek(0)
+    increment_counter()
     return _stream(zip_buf.read(), "pages.zip", "application/zip")
 
 @app.post("/api/convert/pdf-to-word")
@@ -258,6 +300,7 @@ async def pdf_to_excel(file: UploadFile = File(...)):
     buf = io.BytesIO()
     wb.save(buf)
     buf.seek(0)
+    increment_counter()
     return _stream(buf.read(), "converted.xlsx",
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
@@ -305,6 +348,7 @@ async def merge_pdfs(files: List[UploadFile] = File(...)):
     buf = io.BytesIO()
     writer.write(buf)
     buf.seek(0)
+    increment_counter()
     return _stream(buf.read(), "merged.pdf")
 
 @app.post("/api/organize/split")
@@ -336,6 +380,7 @@ async def split_pdf(file: UploadFile = File(...), pages: Optional[str] = Form(No
             part_buf.seek(0)
             zf.writestr(f"split_{idx}.pdf", part_buf.read())
     zip_buf.seek(0)
+    increment_counter()
     return _stream(zip_buf.read(), "split.zip", "application/zip")
 
 @app.post("/api/organize/remove-pages")
@@ -349,6 +394,7 @@ async def remove_pages(file: UploadFile = File(...), pages: str = Form(...)):
     buf = io.BytesIO()
     writer.write(buf)
     buf.seek(0)
+    increment_counter()
     return _stream(buf.read(), "result.pdf")
 
 @app.post("/api/organize/extract-pages")
@@ -371,6 +417,7 @@ async def extract_pages(file: UploadFile = File(...), pages: str = Form(...)):
     buf = io.BytesIO()
     writer.write(buf)
     buf.seek(0)
+    increment_counter()
     return _stream(buf.read(), "extracted.pdf")
 
 @app.post("/api/organize/reorder")
@@ -385,6 +432,7 @@ async def reorder_pdf(file: UploadFile = File(...), order: str = Form(...)):
     buf = io.BytesIO()
     writer.write(buf)
     buf.seek(0)
+    increment_counter()
     return _stream(buf.read(), "reordered.pdf")
 
 # ===
@@ -481,6 +529,7 @@ async def compress_pdf(
         results.append(img_result)
         results.append(try_pypdf())
         best = min(results, key=len)
+        increment_counter()
         return _stream(best, "compressed.pdf")
     except Exception:
         return _stream(try_pypdf(), "compressed.pdf")
@@ -498,6 +547,7 @@ async def rotate_pdf(file: UploadFile = File(...), angle: int = Form(90), pages:
     buf = io.BytesIO()
     writer.write(buf)
     buf.seek(0)
+    increment_counter()
     return _stream(buf.read(), "rotated.pdf")
 
 @app.post("/api/edit/watermark")
@@ -524,6 +574,7 @@ async def add_watermark(file: UploadFile = File(...), text: str = Form("CONFIDEN
     buf = io.BytesIO()
     writer.write(buf)
     buf.seek(0)
+    increment_counter()
     return _stream(buf.read(), "watermarked.pdf")
 
 @app.post("/api/edit/add-page-numbers")
@@ -551,6 +602,7 @@ async def add_page_numbers(file: UploadFile = File(...), position: str = Form("b
     buf = io.BytesIO()
     writer.write(buf)
     buf.seek(0)
+    increment_counter()
     return _stream(buf.read(), "numbered.pdf")
 
 # ===
@@ -567,6 +619,7 @@ async def protect_pdf(file: UploadFile = File(...), password: str = Form(...)):
     buf = io.BytesIO()
     writer.write(buf)
     buf.seek(0)
+    increment_counter()
     return _stream(buf.read(), "protected.pdf")
 
 @app.post("/api/security/unlock")
@@ -582,6 +635,7 @@ async def unlock_pdf(file: UploadFile = File(...), password: str = Form("")):
     buf = io.BytesIO()
     writer.write(buf)
     buf.seek(0)
+    increment_counter()
     return _stream(buf.read(), "unlocked.pdf")
 
 # ---
